@@ -1,40 +1,59 @@
 package com.kenzie.rackmonitor;
 
 import com.kenzie.rackmonitor.*;
+import com.kenzie.rackmonitor.clients.warranty.Warranty;
 import com.kenzie.rackmonitor.clients.warranty.WarrantyClient;
+import com.kenzie.rackmonitor.clients.warranty.WarrantyNotFoundException;
 import com.kenzie.rackmonitor.clients.wingnut.WingnutClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 public class RackMonitorIncidentTest {
+
+    @InjectMocks
     RackMonitor rackMonitor;
+    @Mock
     WingnutClient wingnutClient;
+    @Mock
     WarrantyClient warrantyClient;
+    @Mock
     Rack rack1;
     Server unhealthyServer = new Server("TEST0001");
     Server shakyServer = new Server("TEST0067");
+
     Map<Server, Integer> rack1ServerUnits;
 
     @BeforeEach
-    void setUp() {
-        warrantyClient = new WarrantyClient();
-        wingnutClient = new WingnutClient();
+    void setUp() throws NoSuchServerException, WarrantyNotFoundException {
+
+        MockitoAnnotations.openMocks(this);
+
+        //rack1 = new Rack("RACK01", rack1ServerUnits);
         rack1ServerUnits = new HashMap<>();
         rack1ServerUnits.put(unhealthyServer, 1);
-        rack1 = new Rack("RACK01", rack1ServerUnits);
+
         rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(rack1)),
-            wingnutClient, warrantyClient, 0.9D, 0.8D);
+                wingnutClient, warrantyClient, 0.9D, 0.8D);
     }
 
     @Test
     public void getIncidents_withOneUnhealthyServer_createsOneReplaceIncident() throws Exception {
         // GIVEN
         // The rack is set up with a single unhealthy server
+        Map<Server, Double> serverHealthMap = new HashMap<>();
+        serverHealthMap.put(unhealthyServer,0.7);
         // We've reported the unhealthy server to Wingnut
+        when(rack1.getHealth()).thenReturn(serverHealthMap);
+        when(rack1.getUnitForServer(unhealthyServer)).thenReturn(1);
+        when(warrantyClient.getWarrantyForServer(unhealthyServer)).thenReturn(new Warranty("123"));
         rackMonitor.monitorRacks();
 
         // WHEN
@@ -45,6 +64,7 @@ public class RackMonitorIncidentTest {
             new HealthIncident(unhealthyServer, rack1, 1, RequestAction.REPLACE);
         assertTrue(actualIncidents.contains(expected),
             "Monitoring an unhealthy server should record a REPLACE incident!");
+        verify(rack1, times(1)).getHealth();
     }
 
     @Test
@@ -106,9 +126,32 @@ public class RackMonitorIncidentTest {
         rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(rack1)),
             wingnutClient, warrantyClient, 0.9D, 0.8D);
 
+        when(warrantyClient.getWarrantyForServer(noWarrantyServer)).thenThrow(WarrantyNotFoundException.class);
+
         // WHEN and THEN
         assertThrows(RackMonitorException.class,
             () -> rackMonitor.monitorRacks(),
             "Monitoring a server with no warranty should throw exception!");
     }
+    @Test
+    public void setRackMonitor_duplicateServerEvents_createsOnlyOneServerHealthIncident() throws Exception{
+        //GIVEN
+        Map<Server, Double> health = new HashMap<>();
+        health.put(unhealthyServer,0.7);
+        when(rack1.getHealth()).thenReturn(health);
+        when(rack1.getUnitForServer(unhealthyServer)).thenReturn(1);
+        Warranty warranty = new Warranty((String) unhealthyServer.getServerId());
+        when(warrantyClient.getWarrantyForServer(unhealthyServer)).thenReturn(warranty);
+
+        //WHEN
+        rackMonitor.monitorRacks();
+        rackMonitor.monitorRacks();
+        Set<HealthIncident> actualIncidents = rackMonitor.getIncidents();
+
+        //THEN
+        verify(wingnutClient, times(1)).requestReplacement(rack1,1,warranty);
+        assertEquals(1, actualIncidents.size());
+
+    }
+
 }

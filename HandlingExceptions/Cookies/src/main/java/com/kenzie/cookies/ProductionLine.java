@@ -3,6 +3,7 @@ package com.kenzie.cookies;
 import com.kenzie.cookies.cookie.ChocolateChipCookie;
 import com.kenzie.cookies.cookie.CookieBox;
 import com.kenzie.cookies.cookie.CookieIngredient;
+import com.kenzie.cookies.exception.AllergenContaminantException;
 import com.kenzie.cookies.exception.CookieProductionException;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,7 +37,16 @@ public class ProductionLine {
         for (int i = 0; i < numberOfCookiesToMake; i++) {
             List<CookieIngredient> ingredientTypes = mixer.mix();
             ChocolateChipCookie cookie = oven.bake(ingredientTypes);
-            // TODO: package cookie
+            // package cookie
+            //catch AllergenContainmentException & log fatal error
+            //after logging, throw CookieProductionException
+            try{
+                cookiePackager.packageCookie(cookie);
+
+            }catch (AllergenContaminantException e){
+                logger.fatal("Allergen Contaminant Exception");
+                throw new CookieProductionException();
+            }
         }
         return cookiePackager.getCookieBoxes();
     }

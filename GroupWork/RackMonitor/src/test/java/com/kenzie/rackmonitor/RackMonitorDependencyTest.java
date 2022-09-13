@@ -9,7 +9,9 @@ import com.kenzie.rackmonitor.Server;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,11 +19,11 @@ import java.util.HashSet;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 public class RackMonitorDependencyTest {
+    @Mock
     RackMonitor rackMonitor;
     @Mock
     WingnutClient wingnutClient;
@@ -33,17 +35,20 @@ public class RackMonitorDependencyTest {
     Map<Server, Double> unhealthyServerResult = new HashMap<>();
     Map<Server, Double> healthyServerResult = new HashMap<>();
     Map<Server, Double> shakyServerResult = new HashMap<>();
+    Warranty warranty;
 
     @BeforeEach
     void setUp() throws Exception {
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
+        warranty = new Warranty(("123"));
+        when(warrantyClient.getWarrantyForServer(testServer)).thenReturn(warranty);
         unhealthyServerResult.put(testServer, 0.75D);
         healthyServerResult.put(testServer, 0.99D);
         shakyServerResult.put(testServer, 0.85D);
         when(mockRack.getUnitForServer(testServer)).thenReturn(1);
         when(warrantyClient.getWarrantyForServer(testServer)).thenReturn(Warranty.nullWarranty());
-        rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(mockRack)),
-            wingnutClient, warrantyClient, 0.9D, 0.8D);
+//        rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(mockRack)),
+//            wingnutClient, warrantyClient, 0.9D, 0.8D);
     }
 
     @AfterEach
@@ -55,6 +60,8 @@ public class RackMonitorDependencyTest {
     public void monitorRacks_withOneUnhealthyServer_replacesServer() throws Exception {
         // GIVEN
         // The rack is set up with a single unhealthy server
+        rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(mockRack)),
+                wingnutClient, warrantyClient, 0.9D, 0.8D);
         when(mockRack.getHealth()).thenReturn(unhealthyServerResult);
 
         // WHEN
@@ -62,12 +69,16 @@ public class RackMonitorDependencyTest {
 
         // THEN
         // There were no exceptions
+        verify(wingnutClient).requestReplacement(mockRack, 1, Warranty.nullWarranty());
+        verify(warrantyClient).getWarrantyForServer(testServer);
     }
 
     @Test
     public void monitorRacks_withOneShakyServer_inspectsServer() throws Exception {
         // GIVEN
         // The rack is set up with a single shaky server
+        rackMonitor = new RackMonitor(new HashSet<>(Arrays.asList(mockRack)),
+                wingnutClient, warrantyClient, 0.9D, 0.8D);
         when(mockRack.getHealth()).thenReturn(shakyServerResult);
 
         // WHEN
@@ -75,6 +86,7 @@ public class RackMonitorDependencyTest {
 
         // THEN
         // There were no exceptions
+        verify(wingnutClient).requestInspection(mockRack,1);
     }
 
     @Test
@@ -88,8 +100,11 @@ public class RackMonitorDependencyTest {
 
         // THEN
         // There were no exceptions
+        verifyNoInteractions(wingnutClient);
+        verifyNoInteractions(warrantyClient);
     }
 
+    @Test
     public void monitorRacks_withMixedServers_makesMultipleCalls() throws Exception {
         // GIVEN
         // The rack is set up with many servers with different statuses
@@ -117,5 +132,6 @@ public class RackMonitorDependencyTest {
         // THEN
         // Can we test the *number* of times a method was called,
         // instead of the exact calls?
+        verify(rackMonitor, times(1)).monitorRacks();
     }
 }

@@ -23,12 +23,14 @@ import static com.kenzie.rackmonitor.RequestAction.REPLACE;
  */
 public class RackMonitor {
     private Logger logger = LogManager.getLogger(RackMonitor.class);
-    private final double inspectHealth;
-    private final double replaceHealth;
-    private final Set<Rack> racks;
-    private final WingnutClient wingnutClient;
-    private final WarrantyClient warrantyClient;
+    private double inspectHealth;
+    private double replaceHealth;
+    private Set<Rack> racks;
+    private WingnutClient wingnutClient;
+    private WarrantyClient warrantyClient;
     private final Set<HealthIncident> incidents = new HashSet<>();
+
+    public RackMonitor(){}
 
     public RackMonitor(Set<Rack> racks,
                        WingnutClient wingnutClient,
