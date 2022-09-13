@@ -38,8 +38,12 @@ public class CheckingAccount implements BankAccount {
      */
     @Override
     public BigDecimal deposit(BigDecimal amount) {
-        // TODO: Implement
-        return BigDecimal.ZERO;
+        //Implement
+        validator.validate(amount);
+        balance = balance.add(amount);
+
+        return balance;
+
     }
 
     /**
@@ -50,13 +54,20 @@ public class CheckingAccount implements BankAccount {
      * @throws InsufficientFundsException if account does not have enough funds to withdraw amount
      */
     @Override
-    public BigDecimal withdraw(BigDecimal amount) {
-        // TODO: implement
-        return BigDecimal.ZERO;
+    public BigDecimal withdraw(BigDecimal amount) throws InsufficientFundsException {
+        // implement
+        validator.validate(amount);
+        if(amount.compareTo(balance) == 1){
+            throw new InsufficientFundsException("Insufficient Funds.");
+        }
+        balance = balance.subtract(amount);
+        return balance;
+
     }
 
     @Override
     public BigDecimal getBalance() {
-        // TODO: implement
-        return BigDecimal.ZERO;    }
+        // implement
+        return balance;
+    }
 }

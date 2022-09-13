@@ -1,5 +1,7 @@
 package com.kenzie.bank;
 
+import com.kenzie.bank.exceptions.InvalidInputException;
+import com.kenzie.bank.exceptions.TransactionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,8 +22,16 @@ public class Bank {
      * @param amount of money to transfer.
      * @return true if transfer was successful, false if transfer fails due to insufficient funds
      */
-    public boolean transfer(BankAccount fromAccount, BankAccount toAccount, BigDecimal amount) {
+    public boolean transfer(BankAccount fromAccount, BankAccount toAccount, BigDecimal amount) throws InvalidInputException {
         // TODO: implement
-        return false;
+        try{
+            fromAccount.withdraw(amount);
+            toAccount.deposit(amount);
+        }
+        catch (TransactionException e){
+            log.error("Transaction Exception");
+            return false;
+        }
+        return true;
     }
 }

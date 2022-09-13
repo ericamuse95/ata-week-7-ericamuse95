@@ -2,8 +2,10 @@ package com.kenzie.cookies;
 
 import com.kenzie.cookies.cookie.ChocolateChipCookie;
 import com.kenzie.cookies.cookie.CookieBox;
+import com.kenzie.cookies.cookie.CookieIngredient;
 import com.kenzie.cookies.exception.AllergenContaminantException;
 
+import com.kenzie.cookies.exception.CookieSizeException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,9 +57,16 @@ public class CookiePackager {
      * @throws AllergenContaminantException thrown if an allergen is detected in the cookie to be packaged
      */
     public void packageCookie(ChocolateChipCookie cookie) throws AllergenContaminantException {
-        // [TODO] Remove the throws lines below and implement
-        throw new AllergenContaminantException("CONTAMINATION!");
-        
+        //  Remove the throws lines below and implement
+        for(CookieInspector inspector : inspectors){
+            try{
+                inspector.inspect(cookie);
+            } catch(CookieSizeException e){
+                cookiesForCrumble.add(cookie);
+                return;
+            }
+        }
+        addCookieToBox(cookie);
     }
 
     private void addCookieToBox(ChocolateChipCookie cookie) {

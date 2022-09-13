@@ -18,14 +18,17 @@ public class StockExchangeClient {
      * @return Current market value of a single share of the stock.
      */
     public BigDecimal getPrice(Stock stock) {
+        StockPriceResponse response;
         try {
-            StockPriceResponse response = stockExchange.getMarketPrice(stock.getSymbol());
-
-            return response.getPrice();
+            response = stockExchange.getMarketPrice(stock.getSymbol());
+            if (response == null) {
+                return null;
+            }
 
         } catch (NonExistentStockException e) {
             return null;
         }
+        return response.getPrice();
     }
 
     /**

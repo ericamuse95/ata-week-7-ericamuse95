@@ -55,6 +55,7 @@ class StockExchangeClientTest {
 
         // WHEN
         BigDecimal price = client.getPrice(nonExistentStock);
+        //when(client.getPrice(nonExistentStock)).thenReturn(null);
 
         // THEN
         assertNull(price);
